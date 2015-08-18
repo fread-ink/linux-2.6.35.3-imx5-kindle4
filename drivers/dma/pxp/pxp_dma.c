@@ -36,6 +36,7 @@
 #include <linux/timer.h>
 #include <linux/clk.h>
 #include <linux/workqueue.h>
+#include <linux/sched.h>
 
 #include "regs-pxp.h"
 
