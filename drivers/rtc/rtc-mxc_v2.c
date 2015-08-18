@@ -38,6 +38,7 @@
 #include <linux/uaccess.h>
 #include <linux/io.h>
 #include <linux/mxc_srtc.h>
+#include <linux/sched.h>
 
 #define SRTC_LPSCLR_LLPSC_LSH	17	 /* start bit for LSB time value */
 
