@@ -26,5 +26,7 @@ obj-$(CONFIG_MX50_YOSHI_PROXIMITY) += mx50_proximity.o
 obj-$(CONFIG_MX50_YOSHI_ACCESSORY) += mx50_yoshi_accessory.o
 
 obj-$(CONFIG_MX50_YOSHI_MMA8453) += mx50_yoshi_mma8453.o
-obj-$(CONFIG_MACH_MX50_RDP) += mx50_rdp.o mx50_rdp_pmic_mc13892.o mx50_rdp_pmic_mc34708.o
+
+# removed  since it caused compile fail -- juul
+#obj-$(CONFIG_MACH_MX50_RDP) += mx50_rdp.o mx50_rdp_pmic_mc13892.o mx50_rdp_pmic_mc34708.o
 obj-$(CONFIG_MXC_BLUETOOTH_RFKILL) += mx53_smd_rfkill.o
