@@ -80,6 +80,44 @@ config MACH_MX50_ARM2
 	  Include support for MX50 EVK platform. This includes specific
 	  configurations for the board and its peripherals.
 
+config MACH_MX50_YOSHI
+	bool "Support MX50 Yoshi platform"
+	select ARCH_MX50
+	help
+	  Include support for MX50 Yoshi platform. This includes specific
+	  configurations for the board and its peripherals.
+
+config MX50_YOSHI_SX5844
+	tristate "SX5844 Acelerometer Device Driver"
+	depends on MACH_MX50_YOSHI
+	select HWMON
+	default n
+	help
+	  This driver adds support for the 3-Axis, 8-bit Digital Accelerometer
+
+config MX50_YOSHI_MMA8453
+	tristate "MMA8453 Acelerometer Device Driver"
+	depends on MACH_MX50_YOSHI
+	select HWMON
+	default n
+	help
+	  This driver adds support for the 3-Axis, 12-bit Digital Accelerometer
+
+config MX50_YOSHI_PROXIMITY
+	tristate "MX50 Yoshi Proximity Sensor Driver"
+	depends on MACH_MX50_YOSHI
+	default n
+
+config MX50_YOSHI_SDCARD
+	tristate "MX50 Yoshi SD Card support"
+	depends on MACH_MX50_YOSHI
+	default n
+
+config MX50_YOSHI_ACCESSORY
+	tristate "MX50 Yoshi Accessory Port support"
+	depends on MACH_MX50_YOSHI
+	default y
+
 config MACH_MX50_RDP
 	bool "Support MX50 Reference Design Platform"
 	select ARCH_MX50
