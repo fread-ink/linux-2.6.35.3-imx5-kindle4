@@ -171,6 +171,15 @@ config XEN_KBDDEV_FRONTEND
 	  keyboard and mouse device driver.  It communicates with a back-end
 	  in another domain.
 
+config YOSHI_INPUT_FIVEWAY
+	tristate "5-Way Switch"
+	depends on INPUT
+	help
+	  Say Y here if you have a 5-Way switch connected to your system.
+	  If unsure, say N.
+	  To compile this driver as a module, choose M here: the
+	  module will be called fiveway.	
+
 comment "Input Device Drivers"
 
 source "drivers/input/keyboard/Kconfig"

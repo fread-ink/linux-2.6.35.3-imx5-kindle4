@@ -26,3 +26,4 @@ obj-$(CONFIG_INPUT_MISC)	+= misc/
 obj-$(CONFIG_INPUT_APMPOWER)	+= apm-power.o
 
 obj-$(CONFIG_XEN_KBDDEV_FRONTEND)	+= xen-kbdfront.o
+obj-$(CONFIG_YOSHI_INPUT_FIVEWAY)	+= fiveway.o
