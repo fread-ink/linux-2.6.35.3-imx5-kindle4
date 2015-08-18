@@ -248,5 +248,5 @@ endif
 config REGULATOR_PAPYRUS
 	tristate "Papyrus Regulator Support"
 	depends on REGULATOR
-	depends on MACH_MX50_YOSHIME
+	depends on MACH_MX50_YOSHI
 	default n
