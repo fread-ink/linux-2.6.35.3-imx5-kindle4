@@ -178,6 +178,11 @@ config MXS_VBUS_CURRENT_DRAW
 	  Say Y to enable 100mA limitation when USB vbus power on system
 	  before enumeration to match USB2.0 requirement.
 
+config BATTERY_YOSHI
+        tristate "MX5 YOSHI Battery Driver"
+        help
+          Say Y to enable support for reading the MX5 YOSHI Battery
+
 config BATTERY_DS2438
 	tristate "DS2438 battery driver"
 	select W1
