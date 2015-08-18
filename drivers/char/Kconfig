@@ -797,6 +797,26 @@ config NWBUTTON_REBOOT
 	  driver as a module, you can specify the number of presses at load
 	  time with "insmod button reboot_count=<something>".
 
+config YOSHI_PBUTTON
+	tristate "MX50 Yoshi Power Button"
+	depends on (MACH_MX50_YOSHI || MACH_MX50_TEQUILA || MACH_MX50_YOSHIME)
+	---help---
+	  If you say Y here and create a character device node /dev/yoshibutton
+	  with major and minor numbers 10 and 158 ("man mknod").
+
+	  If this button is held for less than 2 seconds including a momentary
+	  slide, then the device will enter standby mode.
+
+	  If this button is held for 2 or more seconds, the device will enter
+	  shutdown mode.
+
+	  If the device is hung, then the PMIC has been configured by the
+	  startup code to reset the device if the button is held for 4 or
+	  more seconds.
+
+	  To compile this driver as a module, choose M here: the module will
+	  be called yoshibutton.
+
 config NWFLASH
 	tristate "NetWinder flash support"
 	depends on ARCH_NETWINDER
