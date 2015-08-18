@@ -34,6 +34,7 @@ obj-$(CONFIG_REGULATOR_88PM8607) += 88pm8607.o
 obj-$(CONFIG_REGULATOR_DA9052)  += da9052-regulator.o
 
 obj-$(CONFIG_REGULATOR_MAX17135) += max17135-regulator.o
+obj-$(CONFIG_REGULATOR_PAPYRUS) += papyrus-regulator.o
 
 obj-$(CONFIG_REGULATOR_MC13892) += reg-mc13892.o
 obj-$(CONFIG_REGULATOR_MC34704) += reg-mc34704.o
