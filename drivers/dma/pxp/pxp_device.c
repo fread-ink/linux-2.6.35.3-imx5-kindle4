@@ -25,6 +25,7 @@
 #include <linux/delay.h>
 #include <linux/dmaengine.h>
 #include <linux/pxp_dma.h>
+#include <linux/sched.h>
 
 #include <asm/atomic.h>
 
