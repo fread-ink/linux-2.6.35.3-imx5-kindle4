@@ -770,6 +770,11 @@ struct platform_device mxci2c_hs_device = {
 	.resource = mxci2c_hs_resources
 };
 
+struct platform_device mxc_yoshime_ripley_device = {
+	.name = "mc34708_battery",
+	.id = 0,
+};
+
 static struct resource ssi1_resources[] = {
 	{
 		.start = SSI1_BASE_ADDR,
@@ -1131,6 +1136,22 @@ static struct resource mxcsdhc3_resources[] = {
 	{
 		.flags = IORESOURCE_IRQ,
 	},
+};
+
+static struct resource mxcsdhc4_resources[] = {
+        {
+                .start = MMC_SDHC4_BASE_ADDR,
+                .end = MMC_SDHC4_BASE_ADDR + SZ_4K - 1,
+                .flags = IORESOURCE_MEM,
+        },
+        {
+                .start = MXC_INT_MMC_SDHC4,
+                .end = MXC_INT_MMC_SDHC4,
+                .flags = IORESOURCE_IRQ,
+        },
+        {
+                .flags = IORESOURCE_IRQ,
+        },
 };
 
 struct platform_device mxcsdhc1_device = {

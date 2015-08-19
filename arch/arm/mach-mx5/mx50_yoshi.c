@@ -467,9 +467,18 @@ static struct mxc_epdc_fb_mode panel_modes[] = {
 
 extern int gpio_epdc_pins_enable(int enable);
 
-static void epdc_get_pins(void)
+static int epdc_get_pins(void)
 {
-	return;
+
+  /*
+    TODO this does nothing
+    but if we knew the correct pins we could actually
+    implement this function.
+    For an example, look at mx50_arm2.c 
+    and commit cda7046c03f844563208cf19d4924eb756f66fc4
+  */
+
+	return 0;
 }
 
 static void epdc_put_pins(void)
@@ -638,17 +647,6 @@ static struct platform_device yoshi_accessory_device = {
     .name 	= "mx50_yoshi_accessory",
 };
 #endif
-
-/* Check CPU register for wdog reset */
-int mx50_srsr_wdog(void)
-{
-	/* Read SRSR */
-	unsigned long reg = __raw_readl(MXC_SRC_BASE + 0x008);
-
-	/* Bit 4 is wdog rst */
-	return (reg & 0x10);
-}
-EXPORT_SYMBOL(mx50_srsr_wdog);
 
 
 #if defined(CONFIG_MXC_WDOG_PRINTK_BUF)
@@ -984,7 +982,7 @@ static void __init mxc_board_init(void)
 	mxc_register_device(&yoshi_accessory_device, NULL);
 #endif
 
-	if (cpu_is_mx50_rev(CHIP_REV_1_1) >= 1)
+  if (mx50_revision() >= IMX_CHIP_REVISION_1_1)
 		mxc_register_device(&mxc_zq_calib_device, NULL);
 }
 
