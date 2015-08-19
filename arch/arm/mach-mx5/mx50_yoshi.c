@@ -138,8 +138,7 @@ static struct mxc_dvfs_platform_data dvfs_core_data = {
        .pncthr_val = 33,
        .upcnt_val = 10,
        .dncnt_val = 10,
-       .delay_time = 30,
-       .num_wp = 2,
+       .delay_time = 30
 };
 
 /* working point(wp): 0 - 800MHz; 1 - 166.25MHz; */
@@ -220,9 +219,6 @@ static struct mxc_i2c_platform_data mxci2c2_data = {
 	.i2c_clk = 400000,
 };
 
-static struct mxc_srtc_platform_data srtc_data = {
-	.srtc_sec_mode_addr = OCOTP_CTRL_BASE_ADDR + 0x80,
-};
 
 #define mV_to_uV(mV) (mV * 1000)
 #define uV_to_mV(uV) (uV / 1000)
@@ -931,7 +927,6 @@ static void __init mxc_board_init(void)
 #ifdef CONFIG_MXC_PMIC_MC34708
 	mx50_yoshime_init_mc34708();
 #endif
-	mxc_register_device(&mxc_rtc_device, &srtc_data);
 	mxc_register_device(&mxc_w1_master_device, &mxc_w1_data);
 	mxc_register_device(&mxc_pxp_device, NULL);
 	mxc_register_device(&mxc_pxp_client_device, NULL);
