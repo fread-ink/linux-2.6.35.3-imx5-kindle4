@@ -1,4 +1,6 @@
 
+Status: The basic board support code and power button driver is compiling. It's currently failing on the fiveway button input driver. 
+
 This is an attempt at getting a slightly more modern kernel for the Amazon Kindles that are based on the Freescale i.MX 508. Right now this kernel is focused on the Kindle 4 NT since that's the simplest model. Later I plan to add support for all popular electronic paper ebook readers based on i.MX chipsets 50x or earlier.
 
 The most recently updated version of the kernel for this chipset that I've been able to find is the [imx_2.6.35_maintain branch on freescale's linux-2.6-imx git repo](http://git.freescale.com/git/cgit.cgi/imx/linux-2.6-imx.git/?h=imx_2.6.35_maintain). It was last updated in November 2013. It doesn't compile out of the box for i.MX50x but I've fixed all of the problems that don't relate to board specific code. 
