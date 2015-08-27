@@ -1,5 +1,5 @@
 
-Status: The basic board support code and power button driver is compiling. It's currently failing on the fiveway button input driver. 
+Status: Everything is compiling but not linking. It's currently failing on yoshi_button_handler.
 
 This is an attempt at getting a slightly more modern kernel for the Amazon Kindles that are based on the Freescale i.MX 508. Right now this kernel is focused on the Kindle 4 NT since that's the simplest model. Later I plan to add support for all popular electronic paper ebook readers based on i.MX chipsets 50x or earlier.
 
@@ -9,7 +9,7 @@ I've begun adding the Yoshi (code-name for Kindle 4th gen) sources from Amazon's
 
 The incentive for doing this at all is that modern buildroot needs 2.6.32 or newer. I believe this is due to the modern version of binutils not supporting anything earlier.
 
-Freescale also has a newer 3.x kernel in their git repo and it may be that it works for i.MX5 but the focus is definitely on the i.MX6 series (I'm not sure if it works for i.MX5 but it might) and Amazon has not released Yoshi sources for anything newer than 2.6.31.
+Freescale also has a newer 3.x kernel in their git repo but the focus is definitely on the i.MX6 series (I'm not sure if it works for i.MX5 but it might) and Amazon has not released Yoshi sources for anything newer than 2.6.31.
 
 For i.MX 6 there is a fully modern kernel in [the wandboard kernel repo](https://github.com/wandboard-org/linux) and at least board-specific code for the Kindles for some earlier 3.x kernels so I plan to create a different repo for i.MX 6 e-ink readers.
 
