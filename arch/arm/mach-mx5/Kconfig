@@ -16,6 +16,7 @@ config ARCH_MX53
 
 config ARCH_MX50
 	bool
+	select MXC_TZIC
 	select ARCH_HAS_RNGC
 	select ARM_L1_CACHE_SHIFT_6
 

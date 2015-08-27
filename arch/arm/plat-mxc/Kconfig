@@ -156,7 +156,7 @@ config MXC_IRQ_PRIOR
 
 config MXC_TZIC
 	bool "Enable TrustZone Interrupt Controller"
-	depends on ARCH_MX51
+	depends on ARCH_MX51 || ARCH_MX50
 	help
 	  This will be automatically selected for all processors
 	  containing this interrupt controller.

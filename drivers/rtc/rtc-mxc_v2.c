@@ -1,5 +1,7 @@
 /*
- * Copyright (C) 2004-2011 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright (C) 2004-2010 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright (C) 2010-2011 Amazon.com Inc., All Rights Reserved.
+ * Manish Lachwani (lachwani@amazon.com)
  */
 
 /*
@@ -36,9 +38,13 @@
 #include <linux/platform_device.h>
 #include <linux/clk.h>
 #include <linux/uaccess.h>
+#include <mach/hardware.h>
 #include <linux/io.h>
-#include <linux/mxc_srtc.h>
 #include <linux/sched.h>
+#include <linux/mxc_srtc.h>
+#include <linux/pmic_external.h>
+#include <linux/pmic_rtc.h>
+#include <linux/kindle_version.h>
 
 #define SRTC_LPSCLR_LLPSC_LSH	17	 /* start bit for LSB time value */
 
@@ -142,6 +148,11 @@
 #define SRTC_SECMODE_HIGH	0x2	/* High Security */
 #define SRTC_SECMODE_RESERVED	0x3	/* Reserved */
 
+
+#define WDOG_LOWER_THRESHOLD	127	/* WDOG timeout is 127 seconds */
+#define WDOG_HIGHER_THRESHOLD	280	/* Less than 5s normal reset time */
+					/* First reading after 30 seconds of boot */
+
 struct rtc_drv_data {
 	struct rtc_device *rtc;
 	void __iomem *ioaddr;
@@ -151,11 +162,23 @@ struct rtc_drv_data {
 	bool irq_enable;
 };
 
+static int rtc_suspended = 0;
+
+#define RTC_TIMER_THRESHOLD	30000	/* 30 seconds */
+static void do_rtc_work(struct work_struct *work);
+static DECLARE_DELAYED_WORK(rtc_work, do_rtc_work);
+
+/* The last good value of the rtc time */
+extern u32 saved_last_seconds;
+
+static u32 boot_seconds;
 
 /* completion event for implementing RTC_WAIT_FOR_TIME_SET ioctl */
 DECLARE_COMPLETION(srtc_completion);
 /* global to save difference of 47-bit counter value */
 static int64_t time_diff;
+
+extern int mx50_srsr_wdog(void);
 
 /*!
  * @defgroup RTC Real Time Clock (RTC) Driver
@@ -172,6 +195,338 @@ static int64_t time_diff;
 static unsigned long rtc_status;
 
 static DEFINE_SPINLOCK(rtc_lock);
+
+static int boot_reason = 0;
+
+static struct device *__dev;
+
+static inline void rtc_write_sync_lp(void __iomem *ioaddr);
+
+static int mxc_rtc_set_time(struct device *dev, struct rtc_time *tm);
+
+static void rtc_last_good_time(void)
+{
+	unsigned int regA = 0;
+	unsigned int regB = 0;
+
+	/* Get the last good saved seconds */
+#ifdef CONFIG_MXC_PMIC_MC34708
+	pmic_read_reg(REG_MC34708_MEM_A, &regA, (0xff << 16));
+	pmic_read_reg(REG_MC34708_MEM_B, &regB, 0x00ffffff);
+#else
+	pmic_read_reg(REG_MEM_A, &regA, (0xff << 16));
+	pmic_read_reg(REG_MEM_B, &regB, 0x00ffffff);
+#endif
+	saved_last_seconds = (regA << 8)| regB;
+}
+
+/*!
+ * This function reads the RTC value from some external source.
+ *
+ * @param  second       pointer to the returned value in second
+ *
+ * @return 0 if successful; non-zero otherwise
+ */
+static int get_ext_rtc_time(u32 * second)
+{
+	int ret = 0;
+	struct timeval tmp;
+	if (!pmic_rtc_loaded()) {
+		printk(KERN_ALERT "rtc cannot get external time, pmic not loaded\n");
+		return 1;
+	}
+
+	ret = pmic_rtc_get_time(&tmp);
+
+	if (0 == ret)
+		*second = tmp.tv_sec;
+	else{
+		printk(KERN_ALERT "rtc cannot get external time: pmic_rtc_get_time() return 0\n");
+		ret = 1;
+	}
+	return ret;
+}
+
+static void mxc_check_boot_reason(void)
+{
+	unsigned int reg_memory_a;
+
+	if (boot_reason == 1) {
+		/* boot reason already found */
+#ifdef CONFIG_MXC_PMIC_MC34708
+		pmic_write_reg(REG_MC34708_MEM_A, (0 << 0), (0x1f << 0));
+#else
+		pmic_write_reg(REG_MEM_A, (0 << 0), (0x1f << 0));
+#endif
+		return;
+	}
+
+#ifdef CONFIG_MXC_PMIC_MC34708
+	pmic_read_reg(REG_MC34708_MEM_A, &reg_memory_a, (0x1f << 0));
+#else
+	pmic_read_reg(REG_MEM_A, &reg_memory_a, (0x1f << 0));
+#endif
+
+	if (reg_memory_a & 0x2) {
+#ifdef CONFIG_MXC_PMIC_MC34708
+		pmic_write_reg(REG_MC34708_MEM_A, (0 << 1), (1 << 1));
+#else
+		pmic_write_reg(REG_MEM_A, (0 << 1), (1 << 1));
+#endif
+		printk(KERN_ERR "boot: I def:rbt:reset=user_reboot,version=%s:\n", KINDLE_VERSION);
+		boot_reason = 1;
+		goto out;
+	}
+
+	if (reg_memory_a & 0x4) {
+#ifdef CONFIG_MXC_PMIC_MC34708
+		pmic_write_reg(REG_MC34708_MEM_A, (0 << 2), (1 << 2));
+#else
+		pmic_write_reg(REG_MEM_A, (0 << 2), (1 << 2));
+#endif
+		printk(KERN_ERR "boot: W def:hlt:halt=Device,version=%s:\n", KINDLE_VERSION);
+		boot_reason = 1;
+		goto out;
+	}
+
+out:
+	if (reg_memory_a & 0x10) {
+		/* Clear out bit #4 */
+#ifdef CONFIG_MXC_PMIC_MC34708
+		pmic_write_reg(REG_MC34708_MEM_A, (0 << 4), (1 << 4));
+#else
+		pmic_write_reg(REG_MEM_A, (0 << 4), (1 << 4));
+#endif
+		printk(KERN_ERR "boot: W def:crit:reset=critical_battery,version=%s:\n", KINDLE_VERSION);
+		boot_reason = 1;
+	}
+
+#ifdef CONFIG_MXC_PMIC_MC34708
+	pmic_write_reg(REG_MC34708_MEM_A, (0 << 0), (0x1f << 0));
+#else
+	pmic_write_reg(REG_MEM_A, (0 << 0), (0x1f << 0));
+#endif
+}
+
+/*
+ * This function sets external RTC
+ *
+ * @param  second       value in second to be set to external RTC
+ *
+ * @return 0 if successful; non-zero otherwise
+ */
+static int set_ext_rtc_time(u32 second)
+{
+	int ret = 0;
+	struct timeval tmp;
+
+	if (!pmic_rtc_loaded()) {
+		return 1;
+	}
+
+	tmp.tv_sec = second;
+	ret = pmic_rtc_set_time(&tmp);
+	if (0 != ret)
+		ret = 1;
+
+	return ret;
+}
+
+#if defined(CONFIG_MXC_WDOG_PRINTK_BUF)
+extern void mxc_check_wdog_printk_buf(int dump);
+#endif
+
+/*
+ * Both MEMA and MEMB are 24-bit registers. The pmic rtc time is 32-bit.
+ * We save the top 8 bits in MEM_A and bottom 24 bits into MEM_B.
+ */
+static void do_rtc_work(struct work_struct *work)
+{
+	int ret = 0;
+	struct timeval tmp;
+	u32 seconds, sec = 0;
+	unsigned int regA = 0, regB = 0;
+	static int check_boot_runonce = 0;
+	struct rtc_time temp_time;
+
+	if (!pmic_rtc_loaded()) {
+		goto out;
+	}
+
+	/* RTC already suspended */
+	if (rtc_suspended)
+		return;
+
+	ret = pmic_rtc_get_time(&tmp);
+
+	if (!ret) {
+		seconds = tmp.tv_sec;
+		rtc_last_good_time();
+		if(!check_boot_runonce){
+			int crashdump = 0;
+
+			/*********check boot reason************/
+			/************from rtc-mxc.c************/
+			ret = get_ext_rtc_time(&sec);
+			check_boot_runonce = 1;
+	
+			boot_seconds = sec;
+			printk("mxc_rtc: saved=0x%x boot=0x%x\n", saved_last_seconds, boot_seconds);
+
+			if (mx50_srsr_wdog()) {
+				printk(KERN_ERR "boot: C def:rst:reset=watchdog,version=%s:\n", KINDLE_VERSION);
+				boot_reason = 1;
+				crashdump = 1;
+			}
+
+			mxc_check_boot_reason();
+
+			if (!boot_reason) {
+
+			    if (!saved_last_seconds) {
+				printk(KERN_ERR "boot: C def:bcut:batterycut=1,version=%s:\n", KINDLE_VERSION);
+			    } else if ( ((boot_seconds - saved_last_seconds) > WDOG_LOWER_THRESHOLD) &&
+					((boot_seconds - saved_last_seconds) <= WDOG_HIGHER_THRESHOLD) ) {
+				printk(KERN_ERR "boot: C def:rst:reset=watchdog,version=%s:\n", KINDLE_VERSION);
+			    }
+			    else {
+				/* Unknown */
+				printk(KERN_ERR "boot: C def:rst:reset=hard:version=%s\n", KINDLE_VERSION);
+			    }
+
+			    crashdump = 1;
+			}
+			/*
+		 	* If the current time is less than the saved time, use the saved time
+		 	*/
+			if (sec < saved_last_seconds) {
+				sec = saved_last_seconds;
+				set_ext_rtc_time(sec);
+			}
+			rtc_time_to_tm(sec, &temp_time);
+			mxc_rtc_set_time(__dev, &temp_time);
+		
+			/***********end check reason**********/
+#if defined(CONFIG_MXC_WDOG_PRINTK_BUF)
+			mxc_check_wdog_printk_buf(crashdump);
+#endif
+		}
+
+		if (seconds > saved_last_seconds) {
+			/* Mask out 24-bits and save the rtc value */
+			regB = seconds & 0x00ffffff;
+#ifdef CONFIG_MXC_PMIC_MC34708
+			pmic_write_reg(REG_MC34708_MEM_B, regB, 0x00ffffff);
+#else
+			pmic_write_reg(REG_MEM_B, regB, 0x00ffffff);
+#endif
+
+			/* The upper 8-bits are stored in MEM_A begining at location 16 */
+			regA = (seconds & 0xff000000) >> 24;
+#ifdef CONFIG_MXC_PMIC_MC34708
+			pmic_write_reg(REG_MC34708_MEM_A, (regA << 16), (0xff << 16));
+#else
+			pmic_write_reg(REG_MEM_A, (regA << 16), (0xff << 16));
+#endif
+		}
+	}
+
+out:
+	schedule_delayed_work(&rtc_work, msecs_to_jiffies(RTC_TIMER_THRESHOLD));
+}
+
+static int show_rtc_pmic_epoch_time(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	unsigned int regA = 0, regB = 0;
+	u32 seconds;
+
+#ifdef CONFIG_MXC_PMIC_MC34708
+	pmic_read_reg(REG_MC34708_MEM_A, &regA, (0xff << 16));
+	pmic_read_reg(REG_MC34708_MEM_B, &regB, 0x00ffffff);
+#else
+	pmic_read_reg(REG_MEM_A, &regA, (0xff << 16));
+	pmic_read_reg(REG_MEM_B, &regB, 0x00ffffff);
+#endif
+
+	regA &= 0x00ff0000; /* Clear out the remaining bits */
+
+	/* Extra shift the MEM_A value */
+	seconds = (regA << 8) | regB;
+	return sprintf(buf, "%x\n", seconds);
+}
+static DEVICE_ATTR(rtc_pmic_epoch_time, 0666, show_rtc_pmic_epoch_time, NULL);
+
+static int show_rtc_saved_last_seconds(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%x\n", saved_last_seconds);
+}
+static DEVICE_ATTR(rtc_saved_last_seconds, 0666, show_rtc_saved_last_seconds, NULL);
+
+int wakeup_from_halt = 0;
+EXPORT_SYMBOL(wakeup_from_halt);
+static ssize_t wakeup_from_halt_show(struct device *dev, struct device_attribute *attr,
+				char *buf)
+{
+	return sprintf(buf, "%d\n", wakeup_from_halt);
+}
+
+static ssize_t wakeup_from_halt_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t size)
+{
+	int value = 0;
+	
+	if ((sscanf(buf, "%d", &value) > 0) && ((value == 0) || (value == 1))) {
+		wakeup_from_halt = value;
+		return strlen(buf);
+	}
+
+	printk(KERN_ERR "Error setting wakeup_from_halt value \n");
+	return -EINVAL;
+}
+static DEVICE_ATTR(wakeup_from_halt, 0644, wakeup_from_halt_show, wakeup_from_halt_store);
+
+static long wakeup_value = 0;
+static ssize_t wakeup_enable_show(struct device *dev, struct device_attribute *attr,
+				char *buf)
+{
+	return sprintf(buf, "%ld\n", wakeup_value);
+}
+
+static ssize_t wakeup_enable_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t size)
+{
+	int ret;
+	struct timeval tmp;
+	int value = 0;
+
+	if (sscanf(buf, "%d", &value) <= 0) {
+		printk(KERN_ERR "Error setting the wakeup value in PMIC RTC\n");
+		return -EINVAL;
+	}
+
+	if (value != 0) {
+		ret = pmic_rtc_get_time(&tmp);
+		if (ret < 0)
+			printk (KERN_ERR "Failed reading time from RTC\n");
+
+		tmp.tv_sec += value;
+		ret = pmic_rtc_set_time_alarm(&tmp);
+		if (ret < 0)
+			printk (KERN_ERR "Failed setting ALARM for suspend wakeup\n");
+
+		/* Clear TODAI interrupt flag and unmask TODAM */
+#ifdef CONFIG_MXC_PMIC_MC34708
+		pmic_write_reg(REG_MC34708_INT_STATUS1, 0, 0x2);
+		pmic_write_reg(REG_MC34708_INT_MASK1, 0, 0x2);
+#else
+		pmic_write_reg(REG_INT_STATUS1, 0, 0x2);
+		pmic_write_reg(REG_INT_MASK1, 0, 0x2);
+#endif
+		wakeup_value = value;
+	}
+	return size;
+}
+static DEVICE_ATTR(wakeup_enable, 0644, wakeup_enable_show, wakeup_enable_store);
 
 /*!
  * This function does write synchronization for writes to the lp srtc block.
@@ -273,7 +628,7 @@ static irqreturn_t mxc_rtc_interrupt(int irq, void *dev_id)
 	/* clear interrupt status */
 	__raw_writel(lp_status, ioaddr + SRTC_LPSR);
 
-	rtc_write_sync_lp(ioaddr);
+  rtc_write_sync_lp(ioaddr);
 	rtc_update_irq(pdata->rtc, 1, events);
 	return IRQ_HANDLED;
 }
@@ -285,6 +640,7 @@ static irqreturn_t mxc_rtc_interrupt(int irq, void *dev_id)
  */
 static int mxc_rtc_open(struct device *dev)
 {
+
 	if (test_and_set_bit(1, &rtc_status))
 		return -EBUSY;
 	return 0;
@@ -295,6 +651,7 @@ static int mxc_rtc_open(struct device *dev)
  */
 static void mxc_rtc_release(struct device *dev)
 {
+
 	rtc_status = 0;
 }
 
@@ -329,7 +686,7 @@ static int mxc_rtc_ioctl(struct device *dev, unsigned int cmd,
 			pdata->irq_enable = false;
 		}
 		__raw_writel(lp_cr, ioaddr + SRTC_LPCR);
-		rtc_write_sync_lp(ioaddr);
+    rtc_write_sync_lp(ioaddr);
 		spin_unlock_irqrestore(&rtc_lock, lock_flags);
 		return 0;
 
@@ -341,8 +698,8 @@ static int mxc_rtc_ioctl(struct device *dev, unsigned int cmd,
 		}
 		lp_cr = __raw_readl(ioaddr + SRTC_LPCR);
 		lp_cr |= SRTC_LPCR_ALP | SRTC_LPCR_WAE;
-		__raw_writel(lp_cr, ioaddr + SRTC_LPCR);
-		rtc_write_sync_lp(ioaddr);
+	  __raw_writel(lp_cr, ioaddr + SRTC_LPCR);
+    rtc_write_sync_lp(ioaddr);
 		spin_unlock_irqrestore(&rtc_lock, lock_flags);
 		return 0;
 
@@ -356,7 +713,7 @@ static int mxc_rtc_ioctl(struct device *dev, unsigned int cmd,
 
 		return 0;
 
-	/* This IOCTL to be used by processes to be notified of time changes */
+  /* This IOCTL to be used by processes to be notified of time changes */
 	case RTC_WAIT_TIME_SET:
 
 		/* don't block without releasing mutex first */
@@ -432,7 +789,7 @@ static int mxc_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	/* signal all waiting threads that time changed */
 	complete_all(&srtc_completion);
 
-	/* allow signalled threads to handle the time change notification */
+  /* allow signalled threads to handle the time change notification */
 	schedule();
 
 	/* reinitialize completion variable */
@@ -551,6 +908,7 @@ static struct rtc_class_ops mxc_rtc_ops = {
 };
 
 /*! MXC RTC Power management control */
+
 static int mxc_rtc_probe(struct platform_device *pdev)
 {
 	struct clk *clk;
@@ -558,8 +916,11 @@ static int mxc_rtc_probe(struct platform_device *pdev)
 	struct resource *res;
 	struct rtc_device *rtc;
 	struct rtc_drv_data *pdata = NULL;
+	struct mxc_srtc_platform_data *plat_data = NULL;
 	void __iomem *ioaddr;
 	int ret = 0;
+
+	__dev = &pdev->dev;
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	if (!res)
@@ -588,14 +949,14 @@ static int mxc_rtc_probe(struct platform_device *pdev)
 		}
 	}
 
-	clk = clk_get(&pdev->dev, "rtc_clk");
+  clk = clk_get(&pdev->dev, "rtc_clk");
 	if (clk_get_rate(clk) != 32768) {
 		printk(KERN_ALERT "rtc clock is not valid");
 		ret = -EINVAL;
 		clk_put(clk);
 		goto err_out;
 	}
-	clk_put(clk);
+	clk_put(clk);	
 
 	/* initialize glitch detect */
 	__raw_writel(SRTC_LPPDR_INIT, ioaddr + SRTC_LPPDR);
@@ -604,6 +965,8 @@ static int mxc_rtc_probe(struct platform_device *pdev)
 	/* clear lp interrupt status */
 	__raw_writel(0xFFFFFFFF, ioaddr + SRTC_LPSR);
 	udelay(100);
+
+	plat_data = (struct mxc_srtc_platform_data *)pdev->dev.platform_data;
 
 	/* move out of init state */
 	__raw_writel((SRTC_LPCR_IE | SRTC_LPCR_NSA),
@@ -643,6 +1006,25 @@ static int mxc_rtc_probe(struct platform_device *pdev)
 	/* So srtc is set as "should wakeup" as it can */
 	device_init_wakeup(&pdev->dev, 1);
 
+
+	printk(KERN_INFO "Probing mxc_rtc done\n");
+
+	if (device_create_file(&pdev->dev, &dev_attr_wakeup_enable) < 0)
+		printk (KERN_ERR "Error - could not create RTC sysfs entry\n");
+
+	device_init_wakeup(&pdev->dev, 1);
+	schedule_delayed_work(&rtc_work, msecs_to_jiffies(RTC_TIMER_THRESHOLD));
+
+	if (device_create_file(&pdev->dev, &dev_attr_rtc_pmic_epoch_time) < 0)
+		printk (KERN_ERR "mxc_rtc: error creating rtc_pmic_epoch_time entry\n");
+
+
+	if (device_create_file(&pdev->dev, &dev_attr_rtc_saved_last_seconds) < 0)
+		printk (KERN_ERR "mxc_rtc: error creating rtc_saved_last_seconds entry\n");
+
+	if (device_create_file(&pdev->dev, &dev_attr_wakeup_from_halt) < 0)
+		printk (KERN_ERR "Error - could not create rtc_wakeup_from_halt entry\n");
+
 	return ret;
 
 err_out:
@@ -664,8 +1046,21 @@ static int __exit mxc_rtc_remove(struct platform_device *pdev)
 	clk_disable(pdata->clk);
 	clk_put(pdata->clk);
 	kfree(pdata);
+
+	rtc_suspended = 1;
+	cancel_rearming_delayed_work(&rtc_work);
+
+	device_remove_file(&pdev->dev, &dev_attr_wakeup_enable);
+	device_remove_file(&pdev->dev, &dev_attr_rtc_pmic_epoch_time);
+	device_remove_file(&pdev->dev, &dev_attr_rtc_saved_last_seconds);
+	device_remove_file(&pdev->dev, &dev_attr_wakeup_from_halt);
+
 	return 0;
 }
+
+unsigned long suspend_time = 0;
+unsigned long last_suspend_time = 0;
+unsigned long total_suspend_time = 0;
 
 /*!
  * This function is called to save the system time delta relative to
@@ -681,10 +1076,22 @@ static int __exit mxc_rtc_remove(struct platform_device *pdev)
 static int mxc_rtc_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct rtc_drv_data *pdata = platform_get_drvdata(pdev);
+	struct timeval tmp;
 
-	if (device_may_wakeup(&pdev->dev)) {
-		enable_irq_wake(pdata->irq);
-	} else {
+	rtc_suspended = 1;
+	
+	pmic_rtc_get_time(&tmp);
+	suspend_time = tmp.tv_sec;
+
+	if (wakeup_value != 0) {
+		if (device_may_wakeup(&pdev->dev))
+			enable_irq_wake(platform_get_irq(pdev, 0));
+		else {
+			if (pdata->irq_enable)
+				disable_irq(pdata->irq);
+		}
+	}
+	else {
 		if (pdata->irq_enable)
 			disable_irq(pdata->irq);
 	}
@@ -704,13 +1111,31 @@ static int mxc_rtc_suspend(struct platform_device *pdev, pm_message_t state)
 static int mxc_rtc_resume(struct platform_device *pdev)
 {
 	struct rtc_drv_data *pdata = platform_get_drvdata(pdev);
+	unsigned long resume_time = 0;
+	struct timeval tmp;
 
-	if (device_may_wakeup(&pdev->dev)) {
-		disable_irq_wake(pdata->irq);
-	} else {
+	rtc_suspended = 0;
+
+	if (wakeup_value != 0) {
+		wakeup_value = 0;
+		if (device_may_wakeup(&pdev->dev))
+			disable_irq_wake(platform_get_irq(pdev, 0));
+		else {
+			if (pdata->irq_enable)
+				enable_irq(pdata->irq);
+		}
+	}
+	else {
 		if (pdata->irq_enable)
 			enable_irq(pdata->irq);
 	}
+
+	pmic_rtc_get_time(&tmp);
+	resume_time = tmp.tv_sec;
+
+	last_suspend_time = resume_time - suspend_time;
+	total_suspend_time += last_suspend_time;
+	schedule_delayed_work(&rtc_work, msecs_to_jiffies(RTC_TIMER_THRESHOLD));
 
 	return 0;
 }
