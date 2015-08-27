@@ -1,5 +1,5 @@
 
-Status: Everything is compiling but not linking. It's currently failing on something related to mc13892.
+Status: Everything compiles but this kernel has not yet been tested.
 
 This is an attempt at getting a slightly more modern kernel for the Amazon Kindles that are based on the Freescale i.MX 508. Right now this kernel is focused on the Kindle 4 NT since that's the simplest model. Later I plan to add support for all popular electronic paper ebook readers based on i.MX chipsets 50x or earlier.
 

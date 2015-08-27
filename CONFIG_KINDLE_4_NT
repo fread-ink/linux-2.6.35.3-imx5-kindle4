@@ -1,7 +1,7 @@
 #
 # Automatically generated make config: don't edit
 # Linux kernel version: 2.6.35.3
-# Wed Aug 19 09:47:29 2015
+# Thu Aug 27 11:32:41 2015
 #
 CONFIG_ARM=y
 CONFIG_SYS_SUPPORTS_APM_EMULATION=y
@@ -298,6 +298,7 @@ CONFIG_DMA_ZONE_SIZE=96
 CONFIG_ISP1504_MXC=y
 CONFIG_UTMI_MXC=y
 # CONFIG_MXC_IRQ_PRIOR is not set
+CONFIG_MXC_TZIC=y
 # CONFIG_MXC_PWM is not set
 # CONFIG_MXC_DEBUG_BOARD is not set
 CONFIG_ARCH_HAS_RNGC=y
@@ -764,7 +765,7 @@ CONFIG_I2C_HELPER_AUTO=y
 # CONFIG_I2C_DESIGNWARE is not set
 # CONFIG_I2C_GPIO is not set
 CONFIG_I2C_IMX=y
-# CONFIG_I2C_MXC is not set
+CONFIG_I2C_MXC=y
 CONFIG_I2C_MXC_HS=y
 # CONFIG_I2C_OCORES is not set
 # CONFIG_I2C_PCA_PLATFORM is not set

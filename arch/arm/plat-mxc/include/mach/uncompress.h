@@ -112,7 +112,6 @@ static __inline__ void __arch_decomp_setup(unsigned long arch_id)
 	case MACH_TYPE_MX53_ARD:
 		uart_base = MX53_UART1_BASE_ADDR;
 		break;
-	case MACH_TYPE_MX50_ARM2:
 	case MACH_TYPE_MX50_RDP:
 	case MACH_TYPE_MX50_YOSHI:
 		uart_base = MX50_UART1_BASE_ADDR;
