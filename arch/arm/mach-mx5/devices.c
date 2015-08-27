@@ -1175,6 +1175,13 @@ struct platform_device mxcsdhc3_device = {
 	.resource = mxcsdhc3_resources,
 };
 
+struct platform_device mxcsdhc4_device = {
+        .name = "mxsdhci",
+        .id = 3,
+        .num_resources = ARRAY_SIZE(mxcsdhc4_resources),
+        .resource = mxcsdhc4_resources,
+};
+
 static struct resource pata_fsl_resources[] = {
 	{
 		.start = ATA_BASE_ADDR,

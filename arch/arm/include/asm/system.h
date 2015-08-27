@@ -73,6 +73,28 @@ extern unsigned int system_serial_low;
 extern unsigned int system_serial_high;
 extern unsigned int mem_fclk_21285;
 
+
+#if defined(CONFIG_MACH_MX50_YOSHI) || defined(CONFIG_MACH_MX50_TEQUILA) || defined(CONFIG_MACH_MX50_YOSHIME)
+#define SERIAL16_SIZE	16
+#define SERIAL20_SIZE	20
+#define REVISION16_SIZE	16
+#define MAC_ADDR_SIZE	12
+#define MAC_SEC_SIZE	20
+#define BOOTMODE_SIZE	16
+
+extern unsigned char system_rev16[REVISION16_SIZE];
+extern unsigned char system_serial16[SERIAL16_SIZE];
+extern unsigned char system_serial20[SERIAL20_SIZE];
+extern unsigned int system_post;
+extern unsigned char system_mac_addr[MAC_ADDR_SIZE];
+extern unsigned char system_mac_sec[MAC_SEC_SIZE];
+extern unsigned char system_bootmode[BOOTMODE_SIZE];
+extern unsigned char system_postmode[BOOTMODE_SIZE];
+#endif 
+#define SYSTEM_SOC_INFO_SIZE	128
+extern char system_soc_info[SYSTEM_SOC_INFO_SIZE];
+
+
 struct pt_regs;
 
 void die(const char *msg, struct pt_regs *regs, int err);

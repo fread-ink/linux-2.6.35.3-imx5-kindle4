@@ -247,6 +247,16 @@ void arch_idle(void)
 	}
 }
 
+void __init mx50_init_idle_clocks(void)
+{
+	gpc_dvfs_clk = clk_get(NULL, "gpc_dvfs_clk");
+	ddr_clk = clk_get(NULL, "ddr_clk");
+	pll1_sw_clk = clk_get(NULL, "pll1_sw_clk");
+	osc = clk_get(NULL, "lp_apm");
+	pll1_main_clk = clk_get(NULL, "pll1_main_clk");
+}
+
+
 static int __mxs_reset_block(void __iomem *hwreg, int just_enable)
 {
 	u32 c;

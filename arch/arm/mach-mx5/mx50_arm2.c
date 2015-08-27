@@ -1360,12 +1360,14 @@ static void __init mx50_arm2_io_init(void)
 static void __init mxc_board_init(void)
 {
 	/* SD card detect irqs */
-	mxcsdhc1_device.resource[2].start = gpio_to_irq(SD1_CD);
-	mxcsdhc1_device.resource[2].end = gpio_to_irq(SD1_CD);
-	mxcsdhc2_device.resource[2].start = gpio_to_irq(SD2_CD);
-	mxcsdhc2_device.resource[2].end = gpio_to_irq(SD2_CD);
-	mxcsdhc3_device.resource[2].start = gpio_to_irq(SD3_CD);
-	mxcsdhc3_device.resource[2].end = gpio_to_irq(SD3_CD);
+	mxcsdhc2_device.resource[2].start = IOMUX_TO_IRQ(MX50_PIN_SD2_CD);
+	mxcsdhc2_device.resource[2].end = IOMUX_TO_IRQ(MX50_PIN_SD2_CD);
+	mxcsdhc1_device.resource[2].start = IOMUX_TO_IRQ(MX50_PIN_EIM_CRE);
+	mxcsdhc1_device.resource[2].end = IOMUX_TO_IRQ(MX50_PIN_EIM_CRE);
+	mxcsdhc3_device.resource[2].start = FAKE_MMC_DETECT_IRQ; 
+  mxcsdhc3_device.resource[2].end = FAKE_MMC_DETECT_IRQ; 
+  mxcsdhc4_device.resource[2].start = IOMUX_TO_IRQ(MX50_PIN_DISP_D15);
+  mxcsdhc4_device.resource[2].end = IOMUX_TO_IRQ(MX50_PIN_DISP_D15);
 
 	mxc_cpu_common_init();
 	mx50_arm2_io_init();

@@ -94,6 +94,32 @@ EXPORT_SYMBOL(system_serial_high);
 unsigned int elf_hwcap;
 EXPORT_SYMBOL(elf_hwcap);
 
+#if defined(CONFIG_MACH_MX50_YOSHI) || defined(CONFIG_MACH_MX50_TEQUILA) || defined(CONFIG_MACH_MX50_YOSHIME)
+
+unsigned char system_rev16[REVISION16_SIZE];
+EXPORT_SYMBOL(system_rev16);
+
+unsigned char system_serial16[SERIAL16_SIZE];
+EXPORT_SYMBOL(system_serial16);
+
+unsigned char system_serial20[SERIAL20_SIZE];
+EXPORT_SYMBOL(system_serial20);
+
+unsigned char system_bootmode[BOOTMODE_SIZE];
+EXPORT_SYMBOL(system_bootmode);
+
+unsigned char system_postmode[BOOTMODE_SIZE];
+EXPORT_SYMBOL(system_postmode);
+
+unsigned int system_post;
+EXPORT_SYMBOL(system_post);
+
+unsigned char system_mac_addr[MAC_ADDR_SIZE];
+EXPORT_SYMBOL(system_mac_addr);
+
+unsigned char system_mac_sec[MAC_SEC_SIZE];
+EXPORT_SYMBOL(system_mac_sec);
+#endif
 
 #ifdef MULTI_CPU
 struct processor processor;
