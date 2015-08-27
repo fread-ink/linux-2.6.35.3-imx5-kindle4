@@ -232,6 +232,10 @@ void mxc_pg_disable(struct platform_device *pdev);
 
 struct mxc_unifi_platform_data *get_unifi_plat_data(void);
 
+struct mxc_srtc_platform_data {
+	u32 srtc_sec_mode_addr;
+};
+
 struct fsl_otp_data {
 	char 		**fuse_name;
 	char		*regulator_name;

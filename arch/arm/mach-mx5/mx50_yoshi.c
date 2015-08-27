@@ -219,6 +219,9 @@ static struct mxc_i2c_platform_data mxci2c2_data = {
 	.i2c_clk = 400000,
 };
 
+static struct mxc_srtc_platform_data srtc_data = {
+	.srtc_sec_mode_addr = OCOTP_CTRL_BASE_ADDR + 0x80,
+};
 
 #define mV_to_uV(mV) (mV * 1000)
 #define uV_to_mV(uV) (uV / 1000)
@@ -648,6 +651,17 @@ static struct platform_device yoshi_accessory_device = {
 };
 #endif
 
+/* Check CPU register for wdog reset */
+int mx50_srsr_wdog(void)
+{
+	/* Read SRSR */
+	unsigned long reg = __raw_readl(MXC_SRC_BASE + 0x008);
+
+	/* Bit 4 is wdog rst */
+	return (reg & 0x10);
+}
+EXPORT_SYMBOL(mx50_srsr_wdog);
+
 
 #if defined(CONFIG_MXC_WDOG_PRINTK_BUF)
 
@@ -925,6 +939,7 @@ static void __init mxc_board_init(void)
 #ifdef CONFIG_MXC_PMIC_MC34708
 	mx50_yoshime_init_mc34708();
 #endif
+	mxc_register_device(&mxc_rtc_device, &srtc_data);
 	mxc_register_device(&mxc_w1_master_device, &mxc_w1_data);
 	mxc_register_device(&mxc_pxp_device, NULL);
 	mxc_register_device(&mxc_pxp_client_device, NULL);

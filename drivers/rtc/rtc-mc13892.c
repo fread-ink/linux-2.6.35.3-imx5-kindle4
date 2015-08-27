@@ -31,6 +31,15 @@
 
 static unsigned long rtc_status;
 
+/* Has the PMIC RTC been detected yet? */
+static int pmic_rtc_detected = 0;
+
+int pmic_rtc_loaded(void)
+{
+	return pmic_rtc_detected;
+}
+EXPORT_SYMBOL(pmic_rtc_loaded);
+
 static int mxc_rtc_open(struct device *dev)
 {
 	if (test_and_set_bit(1, &rtc_status))
@@ -217,6 +226,7 @@ static int mxc_rtc_probe(struct platform_device *pdev)
 		return -1;
 
 	printk(KERN_INFO "pmic rtc probe succeed\n");
+	pmic_rtc_detected = 1; /* PMIC RTC successfully detected */
 	return 0;
 }
 

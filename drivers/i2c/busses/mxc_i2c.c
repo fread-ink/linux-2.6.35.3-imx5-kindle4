@@ -118,6 +118,9 @@ static const struct clk_div_table i2c_clk_table[] = {
 extern void gpio_i2c_active(int i2c_num);
 extern void gpio_i2c_inactive(int i2c_num);
 
+int mxc_i2c_suspended = 0;
+EXPORT_SYMBOL(mxc_i2c_suspended);
+
 /*!
  * Transmit a \b STOP signal to the slave device.
  *
@@ -602,6 +605,8 @@ static int mxci2c_suspend_noirq(struct device *dev)
 		return -1;
 	}
 
+	mxc_i2c_suspended = 1;
+
 	/* Prevent further calls to be processed */
 	mxcdev->low_power = true;
 	/* Wait till we finish the current transfer */
@@ -635,6 +640,8 @@ static int mxci2c_resume_noirq(struct device *dev)
 
 	mxcdev->low_power = false;
 	gpio_i2c_active(mxcdev->adap.id);
+
+	mxc_i2c_suspended = 0;
 
 	return 0;
 }

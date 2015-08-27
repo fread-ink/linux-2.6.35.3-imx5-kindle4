@@ -12,6 +12,7 @@
 #define __ARCH_ARM_MACH_MX51_CRM_REGS_H__
 
 #define MXC_CCM_BASE	(IO_ADDRESS(CCM_BASE_ADDR))
+#define MXC_SRC_BASE	(IO_ADDRESS(SRC_BASE_ADDR))
 
 /* PLL Register Offsets */
 #define MXC_PLL_DP_CTL			0x00

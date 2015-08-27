@@ -1,5 +1,7 @@
 /*
  * Copyright 2004-2012 Freescale Semiconductor, Inc. All Rights Reserved.
+ * Copyright 2010-2012 Amazon Technologies, Inc. All Rights Reserved.
+ * Manish Lachwani (lachwani@lab126.com)
  */
 
 /*
@@ -41,6 +43,8 @@
 #include <asm/dma.h>
 #include <asm/div64.h>
 #include <mach/mxc_uart.h>
+#include <mach/clock.h>
+#include <mach/boardid.h>
 
 #if defined(CONFIG_SERIAL_MXC_CONSOLE) && defined(CONFIG_MAGIC_SYSRQ)
 #define SUPPORT_SYSRQ
@@ -63,6 +67,8 @@
  * Receive DMA sub-buffer size
  */
 #define RXDMA_BUFF_SIZE         128
+
+static int new_interrupt_count = 0;
 
 /*!
  * This structure is used to store the information for DMA data transfer.
@@ -99,6 +105,30 @@ extern void gpio_uart_inactive(int port, int no_irda);
 extern void config_uartdma_event(int port);
 
 static uart_mxc_port *mxc_ports[MXC_UART_NR];
+
+/*!
+ * Function to enable the uart_clk
+ *
+ * Deal with only the port #0 for now since the Luigi boards support
+ * one UART only.
+ */
+void mxcuart_enable_clock(void)
+{
+	uart_mxc_port *umxc;
+
+	if (mx50_board_is(BOARD_ID_FINKLE))
+		umxc = mxc_ports[3];
+	else
+		umxc = mxc_ports[0];
+
+	/* Don't let the workqueue disable the clock immediately */
+	new_interrupt_count++;
+
+	if (clk_get_usecount(umxc->clk) == 0)
+		clk_enable(umxc->clk);
+}
+EXPORT_SYMBOL(mxcuart_enable_clock);
+
 
 /*!
  * This array holds the DMA channel information for each MXC UART
