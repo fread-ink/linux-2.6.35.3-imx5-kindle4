@@ -69,7 +69,8 @@ static void fiveway_repeat_select_work(struct work_struct *);
 static void fiveway_repeat_right_work(struct work_struct *);
 static void fiveway_repeat_down_work(struct work_struct *);
 
-DEFINE_ATOMIC_SPINLOCK(fiveway_spinlock);
+
+spinlock_t fiveway_spinlock = SPIN_LOCK_UNLOCKED; 
 
 static int fiveway_tequila = 0;
 
@@ -149,7 +150,7 @@ static void report_event(struct input_dev *dev, unsigned int type, unsigned int 
    // NOTE: only sending uevent on key down as per Manish
 
    if (value == 1) {
-      if( kobject_uevent_atomic( &dev->dev.kobj, KOBJ_CHANGE ) )
+      if( kobject_uevent( &dev->dev.kobj, KOBJ_CHANGE ) )
       {
           LLOG_ERROR("uevent", "", "Fiveway driver failed to send uevent\n" );
       }
@@ -467,7 +468,7 @@ static void enable_other_irqs(int irq, int enable)
 	if (fiveway_irq_disabled(irq))
 		return;
 
-	atomic_spin_lock_irqsave(&fiveway_spinlock, flags);
+	spin_lock_irqsave(&fiveway_spinlock, flags);
 
 	if (enable == 0) {	
 		if (irq != FIVEWAY_UP_IRQ) {
@@ -526,7 +527,7 @@ static void enable_other_irqs(int irq, int enable)
 			disabled_select_irq = 0;
 		}
 	}
-	atomic_spin_unlock_irqrestore(&fiveway_spinlock, flags);
+	spin_unlock_irqrestore(&fiveway_spinlock, flags);
 }
 
 static int fiveway_initialized = 0;
