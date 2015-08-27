@@ -41,8 +41,13 @@
 
 #include <asm/uaccess.h>
 
+#ifdef CONFIG_MXC_PMIC_MC13892
 #include <linux/mfd/mc13892/core.h>
+#endif
+
+#ifdef CONFIG_MXC_PMIC_MC34708
 #include <linux/mfd/mc34708/core.h>
+#endif
 
 #include "pmic.h"
 
@@ -97,14 +102,22 @@ static struct platform_device pwm2_ldm = {
 };
 
 enum pmic_id {
+#ifdef CONFIG_MXC_PMIC_MC13892
 	PMIC_ID_MC13892,
+#endif
+#ifdef CONFIG_MXC_PMIC_MC34708
 	PMIC_ID_MC34708,
+#endif
 	PMIC_ID_INVALID,
 };
 
 struct pmic_internal pmic_internal[] = {
+#ifdef CONFIG_MXC_PMIC_MC13892
 	[PMIC_ID_MC13892] = _PMIC_INTERNAL_INITIALIZER(mc13892),
+#endif
+#ifdef CONFIG_MXC_PMIC_MC34708
 	[PMIC_ID_MC34708] = _PMIC_INTERNAL_INITIALIZER(mc34708),
+#endif
 };
 
 /*
@@ -335,11 +348,17 @@ static int __devexit pmic_remove(struct spi_device *spi)
 }
 
 static const struct spi_device_id pmic_device_id[] = {
+#ifdef CONFIG_MXC_PMIC_MC13892
 	{
 		.name = "mc13892",
-	}, {
+	}, 
+#endif
+#ifdef CONFIG_MXC_PMIC_MC34708
+  {
 		.name = "mc34708",
-	}, {
+	}, 
+#endif
+  {
 		/* sentinel */
 	}
 };

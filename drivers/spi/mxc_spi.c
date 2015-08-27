@@ -41,6 +41,9 @@
 #include <linux/fsl_devices.h>
 #include <mach/dma.h>
 
+int mxc_spi_suspended = 0;
+EXPORT_SYMBOL(mxc_spi_suspended);
+
 #define SPI_BUFSIZ		(SMP_CACHE_BYTES + 1)
 #define MAX_CYCLE		100000
 #define MXC_CSPIRXDATA		0x00
@@ -1580,6 +1583,8 @@ static int mxc_spi_suspend(struct platform_device *pdev, pm_message_t state)
 	struct mxc_spi *master_drv_data = spi_master_get_devdata(master);
 	int ret = 0;
 
+	mxc_spi_suspended = 1;
+
 	spi_bitbang_suspend(&master_drv_data->mxc_bitbang);
 	clk_enable(master_drv_data->clk);
 	__raw_writel(MXC_CSPICTRL_DISABLE,
@@ -1612,6 +1617,7 @@ static int mxc_spi_resume(struct platform_device *pdev)
 				master_drv_data->base + MXC_CSPICTRL);
 	clk_disable(master_drv_data->clk);
 
+	mxc_spi_suspended = 1;
 	return 0;
 }
 #else
