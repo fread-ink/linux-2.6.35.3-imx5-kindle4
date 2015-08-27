@@ -41,12 +41,6 @@ EXPORT_SYMBOL(gpio_owire_active);
 void gpio_owire_inactive(void) {}
 EXPORT_SYMBOL(gpio_owire_inactive);
 
-void gpio_i2c_active(int i2c_num) {}
-EXPORT_SYMBOL(gpio_i2c_active);
-
-void gpio_i2c_inactive(int i2c_num) {}
-EXPORT_SYMBOL(gpio_i2c_inactive);
-
 void gpio_i2c_hs_active(void) {}
 EXPORT_SYMBOL(gpio_i2c_hs_active);
 
@@ -58,12 +52,6 @@ EXPORT_SYMBOL(gpio_pmic_active);
 
 void gpio_activate_audio_ports(void) {}
 EXPORT_SYMBOL(gpio_activate_audio_ports);
-
-void gpio_sdhc_active(int module) {}
-EXPORT_SYMBOL(gpio_sdhc_active);
-
-void gpio_sdhc_inactive(int module) {}
-EXPORT_SYMBOL(gpio_sdhc_inactive);
 
 void gpio_sensor_select(int sensor) {}
 
@@ -84,12 +72,6 @@ EXPORT_SYMBOL(gpio_nand_active);
 
 void gpio_nand_inactive(void) {}
 EXPORT_SYMBOL(gpio_nand_inactive);
-
-void gpio_keypad_active(void) {}
-EXPORT_SYMBOL(gpio_keypad_active);
-
-void gpio_keypad_inactive(void) {}
-EXPORT_SYMBOL(gpio_keypad_inactive);
 
 int gpio_usbotg_hs_active(void)
 {
