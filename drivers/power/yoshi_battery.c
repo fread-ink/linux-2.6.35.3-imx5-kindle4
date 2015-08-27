@@ -16,6 +16,7 @@
 #include <linux/timer.h>
 #include <linux/sysdev.h>
 #include <linux/delay.h>
+#include <linux/slab.h>
 #include <mach/boardid.h>
 #include <mach/mwan.h>
 #include <battery_id.h>
@@ -1044,8 +1045,9 @@ static int yoshi_probe(struct i2c_client *client, const struct i2c_device_id *id
         }
 
         client->addr = YOSHI_I2C_ADDRESS;
-        i2c_set_clientdata(client, info);
         info->client = client;
+        i2c_set_clientdata(client, info);
+
         yoshi_battery_i2c_client = info->client;
         yoshi_battery_i2c_client->addr = YOSHI_I2C_ADDRESS;
 
@@ -1110,8 +1112,8 @@ static int yoshi_remove(struct i2c_client *client)
 	return 0;
 }
 
-static unsigned short normal_i2c[] = { YOSHI_I2C_ADDRESS, I2C_CLIENT_END };
-I2C_CLIENT_INSMOD;
+//static unsigned short normal_i2c[] = { YOSHI_I2C_ADDRESS, I2C_CLIENT_END };
+//I2C_CLIENT_INSMOD;
 
 static int yoshi_battery_suspend(struct i2c_client *client, pm_message_t state)
 {
@@ -1141,7 +1143,8 @@ static int yoshi_battery_resume(struct i2c_client *client)
 	return 0;
 }
 
-static struct i2c_driver yoshi_i2c_driver = {
+static struct i2c_driver yoshi_driver = {
+
 	.driver = {
 			.name = DRIVER_NAME,
 		},
@@ -1156,7 +1159,7 @@ static int __init yoshi_battery_init(void)
 {
 	int ret = 0;
 
-	ret = i2c_add_driver(&yoshi_i2c_driver);
+	ret = i2c_add_driver(&yoshi_driver);
 
 	if (ret) {
 		printk(KERN_DEBUG "Yoshi battery: Could not add driver\n");
@@ -1174,7 +1177,7 @@ static void __exit yoshi_battery_exit(void)
 		cancel_delayed_work_sync(&battery_work);
 		yoshi_battery_sysdev_ctrl_exit();
 	}
-	i2c_del_driver(&yoshi_i2c_driver);
+	i2c_del_driver(&yoshi_driver);
 }
 
 module_init(yoshi_battery_init);
