@@ -146,7 +146,13 @@ int pmic_read(int reg_num, unsigned int *reg_val)
 int pmic_write(int reg_num, const unsigned int reg_val)
 {
 	unsigned int frame = 0;
+	unsigned int val;
 	int ret = 0;
+
+	/* mask LEDKPDC5 */
+	if (reg_num == 52)
+		val = reg_val & ~(1U<<8);
+	else val = reg_val;
 
 	if (pmic_drv_data.spi != NULL) {
 		if (reg_num > MXC_PMIC_MAX_REG_NUM)
@@ -231,12 +237,17 @@ PMIC_STATUS pmic_write_reg(int reg, unsigned int reg_value,
 	return ret;
 }
 
+extern int mxc_spi_suspended;
+
 #ifndef CONFIG_MXC_PMIC_MC34704
 unsigned int pmic_get_active_events(unsigned int *active_events)
 {
 	unsigned int count = 0;
 	unsigned int status0, status1;
 	int bit_set;
+
+	while (mxc_spi_suspended)
+		yield();
 
 	pmic_read(REG_INT_STATUS0, &status0);
 	pmic_read(REG_INT_STATUS1, &status1);
@@ -262,21 +273,34 @@ unsigned int pmic_get_active_events(unsigned int *active_events)
 }
 EXPORT_SYMBOL(pmic_get_active_events);
 
+#define EVENT_MASK_0			0x397fff
+#define EVENT_MASK_1			0x1177fb
+
 int pmic_event_unmask(type_event event)
 {
+	unsigned int event_mask = 0;
 	unsigned int mask_reg = 0;
 	unsigned int event_bit = 0;
 	int ret;
 
 	if (event < EVENT_1HZI) {
 		mask_reg = REG_INT_MASK0;
+		event_mask = EVENT_MASK_0;
 		event_bit = (1 << event);
 		events_enabled0 |= event_bit;
 	} else {
 		event -= 24;
 		mask_reg = REG_INT_MASK1;
+		event_mask = EVENT_MASK_1;
 		event_bit = (1 << event);
 		events_enabled1 |= event_bit;
+	}
+
+	pr_debug("even=%d, event_mask=0x%x\n", event_bit, event_mask);
+
+	if ((event_bit & event_mask) == 0) {
+		pr_debug("Error: unmasking a reserved/unused event\n");
+		return PMIC_ERROR;
 	}
 
 	ret = pmic_write_reg(mask_reg, 0, event_bit);

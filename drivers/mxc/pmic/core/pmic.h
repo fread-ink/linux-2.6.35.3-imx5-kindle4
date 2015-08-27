@@ -89,6 +89,52 @@ static inline int spi_rw(struct spi_device *spi, u8 * buf, size_t len)
 	return len - m.actual_length;
 }
 
+/*!
+ * This function returns the PMIC version in system.
+ *
+ * @param 	ver	pointer to the pmic_version_t structure
+ *
+ * @return       This function returns PMIC version.
+ */
+void pmic_get_revision(pmic_version_t * ver);
+
+
+/*!
+ * This function initializes the PMIC registers.
+ *
+ * @return   None
+ */
+int pmic_init_registers(void);
+
+/*!
+ * This function reads the interrupt status registers of PMIC
+ * and determine the current active events.
+ *
+ * @param 	active_events array pointer to be used to return active
+ *		event numbers.
+ *
+ * @return       This function returns PMIC version.
+ */
+unsigned int pmic_get_active_events(unsigned int *active_events);
+
+/*!
+ * This function sets a bit in mask register of pmic to disable an event IT.
+ *
+ * @param	event 	the event to be masked
+ *
+ * @return     This function returns PMIC_SUCCESS on SUCCESS, error on FAILURE.
+ */
+int pmic_event_mask(type_event event);
+
+/*!
+ * This function unsets a bit in mask register of pmic to unmask an event IT.
+ *
+ * @param	event 	the event to be unmasked
+ *
+ * @return    This function returns PMIC_SUCCESS on SUCCESS, error on FAILURE.
+ */
+int pmic_event_unmask(type_event event);
+
 #ifdef CONFIG_MXC_PMIC_FIXARB
 extern PMIC_STATUS pmic_fix_arbitration(struct spi_device *spi);
 #else
