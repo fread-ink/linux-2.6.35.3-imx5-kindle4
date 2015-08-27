@@ -324,6 +324,32 @@ long clk_round_rate(struct clk *clk, unsigned long rate)
 }
 EXPORT_SYMBOL(clk_round_rate);
 
+/* Propagate rate to children */
+void propagate_rate(struct mxc_clk *mxc_tclk)
+{
+	struct mxc_clk *mxc_clkp;
+	struct clk *clkp;
+	struct clk *tclk = mxc_tclk->reg_clk;
+  unsigned long rate;
+
+	if (tclk == NULL || IS_ERR(tclk))
+		return;
+
+	list_for_each_entry(mxc_clkp, &clocks, node) {
+    clkp = mxc_clkp->reg_clk;
+		if (likely(clkp->parent != tclk))
+			continue;
+		if (likely(((u32) clkp->get_rate) && ((u32) clkp->set_rate))) {
+			rate = clkp->get_rate(clkp);
+      clkp->set_rate(clkp, rate);
+		} else {
+      rate = tclk->get_rate(tclk);
+      clkp->set_rate(clkp, rate);
+    }
+		propagate_rate(mxc_clkp);
+	}
+}
+
 /* Set the clock to the requested clock rate. The rate must
  * match a supported rate exactly based on what clk_round_rate returns
  */
