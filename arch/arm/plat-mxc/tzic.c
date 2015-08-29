@@ -146,6 +146,7 @@ void __init mxc_tzic_init_irq(unsigned long base)
 	/* all IRQ no FIQ Warning :: No selection */
 
 	for (i = 0; i < TZIC_NUM_IRQS; i++) {
+    printk(KERN_INFO "Installing IRQ %d\n", i);
 		set_irq_chip(i, &mxc_tzic_chip);
 		set_irq_handler(i, handle_level_irq);
 		set_irq_flags(i, IRQF_VALID);

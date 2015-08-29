@@ -883,6 +883,8 @@ static int z160_version = 1;
  */
 static void __init mxc_board_init(void)
 {
+  printk("Board init 1\n");
+
 	/* SD card detect irqs */
 	mxcsdhc2_device.resource[2].start = IOMUX_TO_IRQ(MX50_PIN_SD2_CD);
 	mxcsdhc2_device.resource[2].end = IOMUX_TO_IRQ(MX50_PIN_SD2_CD);
@@ -907,7 +909,7 @@ static void __init mxc_board_init(void)
 	mxc_register_device(&mxcspi3_device, &mxcspi3_data);
 	mxc_register_device(&mxci2c_devices[0], &mxci2c_data);
 	mxc_register_device(&mxci2c_devices[1], &mxci2c_data);
- 
+
 	if (mx50_board_rev_greater(BOARD_ID_WHITNEY_PROTO) ||
 	    mx50_board_rev_greater(BOARD_ID_WHITNEY_WFO_PROTO) ||
 	    mx50_board_rev_greater_eq(BOARD_ID_YOSHI_5))
@@ -939,6 +941,7 @@ static void __init mxc_board_init(void)
 #ifdef CONFIG_MXC_PMIC_MC34708
 	mx50_yoshime_init_mc34708();
 #endif
+
 	mxc_register_device(&mxc_rtc_device, &srtc_data);
 	mxc_register_device(&mxc_w1_master_device, &mxc_w1_data);
 	mxc_register_device(&mxc_pxp_device, NULL);
@@ -999,6 +1002,7 @@ static void __init mxc_board_init(void)
 
   if (mx50_revision() >= IMX_CHIP_REVISION_1_1)
 		mxc_register_device(&mxc_zq_calib_device, NULL);
+
 }
 
 char *mxc_get_task_comm(char *buf, struct task_struct *tsk)
@@ -1037,6 +1041,9 @@ static struct sys_timer mxc_timer = {
 MACHINE_START(MX50_YOSHI, "Amazon.com MX50 YOSHI Board")
 	/* Maintainer: Manish Lachwani <lachwani@amazon.com> */
 	.fixup = fixup_mxc_board,
+	.phys_io	= AIPS1_BASE_ADDR,
+	.io_pg_offst	= (AIPS1_BASE_ADDR_VIRT >> 18) & 0xfffc,
+	.boot_params	= MX50_PHYS_OFFSET + 0x100,
 	.map_io = mx5_map_io,
 	.init_irq = mx5_init_irq,
 	.init_machine = mxc_board_init,

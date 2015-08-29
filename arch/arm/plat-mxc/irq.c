@@ -270,7 +270,7 @@ void __init mxc_init_irq(void __iomem *irqbase)
 	else if (MXC_INT_FORCE >= 0)
 		__raw_writel(1 << MXC_INT_FORCE, avic_base + AVIC_INTFRCL);
 
-	printk(KERN_INFO "MXC IRQ initialized\n");
+	printk(KERN_INFO "MXC IRQ initialized (irq.c) \n");
 }
 
 /*!
