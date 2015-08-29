@@ -12,6 +12,9 @@
  */
 #define IMX_NEEDS_DEPRECATED_SYMBOLS
 
+#include <mach/hardware.h>
+
+        
 #ifdef CONFIG_ARCH_MX1
 #include <mach/mx1.h>
 #define UART_PADDR	UART1_BASE_ADDR
@@ -50,10 +53,16 @@
 #error "CONFIG_DEBUG_LL is incompatible with multiple archs"
 #endif
 #include <mach/mx5x.h>
+#ifdef CONFIG_MACH_MX50_YOSHI
+#define UART_PADDR	UART1_BASE_ADDR
+#define UART_VADDR	AIPS1_IO_ADDRESS(UART1_BASE_ADDR)
+#else
 #define UART_PADDR	MX51_UART1_BASE_ADDR
 #define UART_VADDR	MX51_AIPS1_IO_ADDRESS(MX51_UART1_BASE_ADDR)
 #endif
+#endif
 
+        
 #ifdef CONFIG_ARCH_MXC91231
 #ifdef UART_PADDR
 #error "CONFIG_DEBUG_LL is incompatible with multiple archs"

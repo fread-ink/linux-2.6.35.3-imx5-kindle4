@@ -4,7 +4,7 @@
 
 make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- -j1 
 
-make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- -j1 uImage 
+make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- -j1 uImage LOADADDR=0x70008000
 
 make ARCH=arm CROSS_COMPILE=arm-linux-gnueabi- -j1 targz-pkg
 
